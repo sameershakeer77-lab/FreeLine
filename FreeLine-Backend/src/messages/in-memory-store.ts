@@ -229,12 +229,12 @@ export class InMemoryMessageStore implements MessageStore {
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .slice(input.offset, input.offset + input.limit);
 
-      return {
-        conversation: this.toConversationRecord(conversation.id),
-        limit: input.limit,
-        messages,
-        offset: input.offset
-      };
+    return {
+      conversation: this.toConversationRecord(conversation.id),
+      limit: input.limit,
+      messages,
+      offset: input.offset
+    };
   }
 
   async markConversationRead(input: {
@@ -433,6 +433,8 @@ export class InMemoryMessageStore implements MessageStore {
       lastMessageAt: conversation.lastMessageAt,
       lastMessagePreview: lastMessage?.body ?? null,
       lastMessageStatus: lastMessage?.status ?? null,
+      lastSpamConfidence: null,
+      lastSpamReason: null,
       participantNumber: conversation.participantNumber,
       phoneNumberId: conversation.phoneNumberId,
       unreadCount: conversation.unreadCount,
@@ -477,6 +479,8 @@ export class InMemoryMessageStore implements MessageStore {
       direction: input.direction,
       id: createId(),
       providerMessageId: null,
+      spamConfidence: null,
+      spamReason: null,
       status: input.status,
       updatedAt: now
     };
