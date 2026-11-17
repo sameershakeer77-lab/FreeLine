@@ -28,6 +28,8 @@ function mapConversation(row: Record<string, unknown>): ConversationRecord {
     lastMessageAt: (row.last_message_at as string | null) ?? null,
     lastMessagePreview: (row.last_message_preview as string | null) ?? null,
     lastMessageStatus: (row.last_message_status as ConversationRecord["lastMessageStatus"]) ?? null,
+    lastSpamConfidence: (row.last_spam_confidence as number | null) ?? null,
+    lastSpamReason: (row.last_spam_reason as string | null) ?? null,
     participantNumber: String(row.participant_number),
     phoneNumberId: String(row.phone_number_id),
     unreadCount: Number(row.unread_count),
@@ -44,6 +46,8 @@ function mapMessage(row: Record<string, unknown>): MessageRecord {
     direction: row.direction as MessageRecord["direction"],
     id: String(row.id),
     providerMessageId: (row.provider_message_id as string | null) ?? null,
+    spamConfidence: (row.spam_confidence as number | null) ?? null,
+    spamReason: (row.spam_reason as string | null) ?? null,
     status: row.status as MessageRecord["status"],
     updatedAt: String(row.updated_at)
   };
@@ -108,10 +112,12 @@ async function findConversation(
         c.created_at,
         c.updated_at,
         lm.body as last_message_preview,
-        lm.status as last_message_status
+        lm.status as last_message_status,
+        lm.spam_confidence as last_spam_confidence,
+        lm.spam_reason as last_spam_reason
       from conversations c
       left join lateral (
-        select m.body, m.status
+        select m.body, m.status, m.spam_confidence, m.spam_reason
         from messages m
         where m.conversation_id = c.id
         order by m.created_at desc
@@ -298,10 +304,12 @@ export class PostgresMessageStore implements MessageStore {
             c.created_at,
             c.updated_at,
             lm.body as last_message_preview,
-            lm.status as last_message_status
+            lm.status as last_message_status,
+            lm.spam_confidence as last_spam_confidence,
+            lm.spam_reason as last_spam_reason
           from conversations c
           left join lateral (
-            select m.body, m.status
+            select m.body, m.status, m.spam_confidence, m.spam_reason
             from messages m
             where m.conversation_id = c.id
             order by m.created_at desc
@@ -346,6 +354,8 @@ export class PostgresMessageStore implements MessageStore {
             body,
             status,
             provider_message_id,
+            spam_confidence,
+            spam_reason,
             created_at,
             updated_at
           from messages
@@ -632,6 +642,7 @@ export class PostgresMessageStore implements MessageStore {
       return result.rowCount ? mapMessage(result.rows[0] as Record<string, unknown>) : null;
     });
   }
+
   private async createMessage(input: {
     body: string;
     direction: MessageRecord["direction"];
